@@ -1,0 +1,48 @@
+---
+- name: Install Apache and deploy sample application
+  hosts: web_servers
+  become: true
+  tasks:
+    - name: Install Apache web server
+      apt:
+        name: apache2
+        state: present
+    - name: Deploy sample HTML application
+      copy: src:/path/to/sample_application/index.html
+        dest:/var/www/example.com/index.html
+    - name: Create example.com directory
+      file:
+        path: /var/www/example.com
+        state: directory
+    - name: Set ownership and permissions for example.com directory
+      file:
+        path: /var/www/example.com
+        owner: www-data
+        group: www-data
+        mode: "0755"
+    - name: Create Apache virtual host configuration for example.com
+      template: src:/path/to/virtual_host_template.j2
+        dest:/etc/apache2/sites-available/example.com.conf
+    - name: Enable example.com virtual host
+      apache2_module:
+        name: rewrite
+        state: present
+    - name: Enable example.com virtual host configuration
+      apache2_module:
+        name: vhost_alias
+        state: present
+    - name: Enable example.com virtual host
+      apache_vhost:
+        state: present
+        definition: example.com
+        priority: 10
+        enable: true
+    - name: Disable default Apache virtual host
+      apache2_vhost:
+        state: absent
+        definition: 000-default
+        priority: 0
+    - name: Restart Apache service
+      service:
+        - name: apache2
+          state: restarted
